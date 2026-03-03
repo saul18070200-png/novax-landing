@@ -1057,15 +1057,21 @@ label {
     }
 
     .hero {
-        padding-top: 80px;
+        padding-top: 120px;
+        /* Increased to avoid header overlap */
+        padding-bottom: 60px;
         height: auto;
         min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        /* Ensure content starts below header */
     }
 
     .hero__container {
         grid-template-columns: 1fr;
         text-align: center;
         gap: 30px;
+        width: 100%;
     }
 
     .hero__title {
