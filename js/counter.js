@@ -29,21 +29,19 @@ const animateValue = (obj, start, end, duration) => {
 const counterRef = doc(db, "counters", "landing_stats");
 
 // 1. ESCUCHAR CAMBIOS EN TIEMPO REAL
-// Esto actualiza el número automáticamente en todas las pantallas abiertas
 onSnapshot(counterRef, (docSnap) => {
     if (docSnap.exists()) {
         const data = docSnap.data();
         const currentVal = parseInt(counterElement.innerText.replace(/,/g, '')) || 0;
-        // Animar desde el valor actual al nuevo (2.5 segundos para efecto dramático)
+        // Animar desde el valor actual al nuevo
         animateValue(counterElement, currentVal, data.count, 2500);
     } else {
-        // Si es la primera vez y no existe, lo creamos
-        console.log("Creando contador inicial...");
-        setDoc(counterRef, { count: 3100 });
+        // IMPORTANTE: Ya NO creamos el documento aquí automáticamente con 3100.
+        // Esto evita que fallos temporales de conexión reseteen el valor en la DB.
+        console.warn("El documento de contador no existe en la base de datos.");
     }
 }, (error) => {
     console.error("Error conectando a Firestore:", error);
-    // Indicador visual discreto de error de conexión (probablemente falta config)
     counterElement.style.opacity = "0.5";
 });
 
@@ -55,18 +53,27 @@ const registerVisit = async () => {
 
         // Solo contamos si no hay registro previo o si pasaron 30 mins
         if (!lastVisit || (now - parseInt(lastVisit) > SESSION_TIMEOUT)) {
-            await updateDoc(counterRef, {
-                count: increment(1)
-            });
+            // Usamos updateDoc para incrementar. Si falla porque no existe, el catch lo manejará.
+            try {
+                await updateDoc(counterRef, {
+                    count: increment(1)
+                });
+                console.log("Visita registrada +1");
+            } catch (updateError) {
+                // Si el error es que no existe (code: 'not-found'), lo inicializamos UNA VEZ.
+                if (updateError.code === 'not-found' || updateError.message.includes('not found')) {
+                    console.log("Inicializando contador por primera vez (3100)");
+                    await setDoc(counterRef, { count: 3100 });
+                } else {
+                    throw updateError; // Propagamos otros errores (permisos, etc)
+                }
+            }
             localStorage.setItem(VISIT_KEY, now.toString());
-            console.log("Visita registrada +1");
         } else {
             console.log("Visita recurrente (no incrementa)");
         }
     } catch (error) {
-        // Si falla (ej. documento no existe), el setDoc en onSnapshot lo arreglará
-        // o si falta permisos/config, se mostrará el error en consola
-        console.warn("No se pudo incrementar visita:", error);
+        console.warn("Fallo crítico al registrar visita:", error);
     }
 };
 
