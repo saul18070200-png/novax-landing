@@ -275,28 +275,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
     });
 
-    // --- Interceptar formulario y redirigir a thank-you.html ---
+    // --- Interceptor de formulario para UI feedback ---
     const quoteForm = document.getElementById('quoteForm');
     if (quoteForm) {
-        quoteForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-
+        quoteForm.addEventListener('submit', function () {
             const btn = quoteForm.querySelector('button[type="submit"]');
             btn.disabled = true;
             btn.textContent = 'Enviando…';
-
-            try {
-                await fetch(quoteForm.action, {
-                    method: 'POST',
-                    body: new FormData(quoteForm),
-                    headers: { 'Accept': 'application/json' }
-                });
-            } catch (_) {
-                // Si fetch falla, igual redirigimos (el email puede haber llegado)
-            }
-
-            window.location.href = '/thank-you.html';
+            // El navegador hará el envío estándar POST y redirigirá por el input _next
         });
     }
 });
-
