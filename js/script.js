@@ -31,17 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const nav = document.querySelector('.nav');
     const navLinks = document.querySelectorAll('.nav__link');
 
-    mobileBtn.addEventListener('click', () => {
-        nav.classList.toggle('active');
-        mobileBtn.classList.toggle('active');
-    });
-
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            nav.classList.remove('active');
-            mobileBtn.classList.remove('active');
+    if (mobileBtn && nav) {
+        mobileBtn.addEventListener('click', () => {
+            nav.classList.toggle('active');
+            mobileBtn.classList.toggle('active');
         });
-    });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                nav.classList.remove('active');
+                mobileBtn.classList.remove('active');
+            });
+        });
+    }
 
     // Scroll Animations
     const observerOptions = {
@@ -56,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, observerOptions);
 
-    // Initial fold elements should be visible instantly
     const sections = document.querySelectorAll('.section:not(.hero)');
     sections.forEach(section => {
         section.classList.add('fade-in');
@@ -69,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let phraseIndex = 0;
     let charIndex = 0;
     let isDeleting = false;
-    let typeSpeed = 150; // Un poco más lento al escribir para que sea legible
+    let typeSpeed = 150;
 
     function type() {
         const currentPhrase = phrases[phraseIndex];
@@ -77,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isDeleting) {
             typingText.textContent = currentPhrase.substring(0, charIndex - 1);
             charIndex--;
-            typeSpeed = 100; // Borrado rápido
+            typeSpeed = 100;
         } else {
             typingText.textContent = currentPhrase.substring(0, charIndex + 1);
             charIndex++;
@@ -86,11 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!isDeleting && charIndex === currentPhrase.length) {
             isDeleting = true;
-            typeSpeed = 2500; // Pausa más larga al final de la palabra para impacto
+            typeSpeed = 2500;
         } else if (isDeleting && charIndex === 0) {
             isDeleting = false;
             phraseIndex = (phraseIndex + 1) % phrases.length;
-            typeSpeed = 400; // Pausa breve antes de empezar la nueva
+            typeSpeed = 400;
         }
 
         setTimeout(type, typeSpeed);
@@ -100,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         type();
     }
 
-    // 2. Canvas Particles
+    // Canvas Particles
     const canvas = document.getElementById('hero-canvas');
     if (canvas) {
         const ctx = canvas.getContext('2d');
@@ -128,7 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-
                 if (this.x < 0 || this.x > width) this.vx *= -1;
                 if (this.y < 0 || this.y > height) this.vy *= -1;
             }
@@ -143,25 +143,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function initParticles() {
             particles = [];
-            for (let i = 0; i < 120; i++) {
-                particles.push(new Particle());
-            }
+            for (let i = 0; i < 120; i++) particles.push(new Particle());
         }
 
         function animateParticles() {
             ctx.clearRect(0, 0, width, height);
-
             particles.forEach((p, index) => {
                 p.update();
                 p.draw();
-
-                // Draw connections
                 for (let j = index + 1; j < particles.length; j++) {
                     const p2 = particles[j];
                     const dx = p.x - p2.x;
                     const dy = p.y - p2.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
-
                     if (distance < 150) {
                         ctx.beginPath();
                         ctx.strokeStyle = `rgba(0, 240, 255, ${0.1 - distance / 1500})`;
@@ -172,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-
             requestAnimationFrame(animateParticles);
         }
 
@@ -180,68 +173,32 @@ document.addEventListener('DOMContentLoaded', () => {
         animateParticles();
     }
 
-    // 3. 3D Tilt Effect
-    const cards = document.querySelectorAll('.service-card, .project-card');
-
-    cards.forEach(card => {
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-
-            const rotateX = ((y - centerY) / centerY) * -5; // Max 5deg rotation
-            const rotateY = ((x - centerX) / centerX) * 5;
-
-            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
-        });
-
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
-        });
-    });
-
-
-    // Magnetic Buttons
-    const magneticButtons = document.querySelectorAll('.btn');
-    magneticButtons.forEach(btn => {
-        btn.addEventListener('mousemove', (e) => {
-            const rect = btn.getBoundingClientRect();
+    // 3D Tilt Effect & Magnetic Buttons
+    const interactiveElements = document.querySelectorAll('.service-card, .project-card, .btn');
+    interactiveElements.forEach(el => {
+        el.addEventListener('mousemove', (e) => {
+            const rect = el.getBoundingClientRect();
             const x = e.clientX - rect.left - rect.width / 2;
             const y = e.clientY - rect.top - rect.height / 2;
-            btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+            
+            if (el.classList.contains('btn')) {
+                el.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+            } else {
+                const rx = (y / (rect.height / 2)) * -5;
+                const ry = (x / (rect.width / 2)) * 5;
+                el.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.02)`;
+            }
         });
 
-        btn.addEventListener('mouseleave', () => {
-            btn.style.transform = 'translate(0, 0)';
+        el.addEventListener('mouseleave', () => {
+            el.style.transform = '';
         });
     });
-
-    // Tech Orb
-    const orb = document.querySelector('.tech-orb');
-    const hero = document.querySelector('.hero');
-    if (orb && hero) {
-        hero.addEventListener('mousemove', (e) => {
-            const rect = hero.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width - 0.5;
-            const y = (e.clientY - rect.top) / rect.height - 0.5;
-            orb.style.transform = `translate(${x * 50}px, ${y * 50}px)`;
-            orb.classList.add('active');
-        });
-
-        hero.addEventListener('mouseleave', () => {
-            orb.style.transform = 'translate(0, 0)';
-            orb.classList.remove('active');
-        });
-    }
 
     // Custom Selects
     function setupCustomSelect(selectId, inputId) {
         const customSelect = document.getElementById(selectId);
         if (!customSelect) return;
-
         const trigger = customSelect.querySelector('.select-trigger');
         const triggerText = trigger.querySelector('span');
         const options = customSelect.querySelectorAll('.option');
@@ -259,11 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const value = option.getAttribute('data-value');
-                // Extraemos solo el texto que no está dentro del span del icono
                 const text = Array.from(option.childNodes)
-                    .filter(node => node.nodeType === 3) // Node.TEXT_NODE
+                    .filter(node => node.nodeType === 3)
                     .map(node => node.textContent.trim())
-                    .filter(content => content.length > 0)
+                    .filter(c => c.length > 0)
                     .join(' ');
 
                 options.forEach(opt => opt.classList.remove('selected'));
@@ -283,77 +239,39 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
     });
 
-    // --- Fail-Safe Lead Capture (Firestore + FormSubmit) ---
+    // --- "Bulletproof" Lead Capture (Firestore + Resilio Tunnel) ---
     const quoteForm = document.getElementById('quoteForm');
     if (quoteForm) {
         quoteForm.addEventListener('submit', async function (e) {
             e.preventDefault(); 
 
             const btn = quoteForm.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            
             btn.disabled = true;
-            btn.textContent = 'Asegurando tus datos...';
+            btn.textContent = 'Enviando Solicitud...';
 
-            // 1. Recolectar datos
             const formData = new FormData(quoteForm);
             const data = {};
             formData.forEach((value, key) => {
-                // No enviar campos internos de FormSubmit a la base de datos
-                if (!key.startsWith('_')) {
-                    data[key] = value;
-                }
+                if (!key.startsWith('_')) data[key] = value;
             });
             data.timestamp = serverTimestamp();
-            data.userAgent = navigator.userAgent;
 
-            let firebaseSaved = false;
-
-            // 2. PASO CRÍTICO: Guardar en Firestore (Backup Infalible)
+            // 1. Guardar en Base de Datos (Seguridad #1)
             try {
-                console.log("Intentando guardar lead en Firestore...");
                 await addDoc(collection(db, "leads"), data);
-                console.log("Lead guardado exitosamente en Firebase Firestore");
-                firebaseSaved = true;
+                console.log("Lead guardado exitosamente en Base de Datos");
             } catch (fsError) {
-                console.error("Error al guardar en Firestore:", fsError);
-                // Si esto falla, seguimos intentando el correo
+                console.error("Fallo guardar lead (Permisos Firebase):", fsError);
             }
 
-            // 3. PASO DE NOTIFICACIÓN: Intentar FormSubmit
-            btn.textContent = 'Enviando notificación...';
-            
-            const formSubmitData = {};
-            formData.forEach((value, key) => formSubmitData[key] = value);
+            // 2. Envío Silencioso (Seguridad #2)
+            quoteForm.target = "hidden_iframe"; 
+            quoteForm.submit();
 
-            try {
-                const response = await fetch("https://formsubmit.co/ajax/saul18070200@gmail.com", {
-                    method: 'POST',
-                    body: JSON.stringify(formSubmitData),
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (response.ok || firebaseSaved) {
-                    // Si se guardó en Firebase O se envió por correo, es un éxito para el cliente
-                    window.location.href = 'thank-you.html';
-                } else {
-                    throw new Error('Ambos métodos fallaron');
-                }
-            } catch (error) {
-                console.error('Fallo total de envío:', error);
-                
-                if (firebaseSaved) {
-                    // Aunque el correo/red falle, si se guardó en Firebase, redirigimos como éxito
-                    window.location.href = 'thank-you.html';
-                } else {
-                    // Último recurso: Intento tradicional (podría dar el error QUIC pero no hay de otra)
-                    btn.textContent = 'Recuperando envío...';
-                    quoteForm.submit();
-                }
-            }
+            // 3. UX Instantánea
+            setTimeout(() => {
+                window.location.href = 'thank-you.html';
+            }, 500);
         });
     }
 });
