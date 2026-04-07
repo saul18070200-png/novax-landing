@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const quoteForm = document.getElementById('quoteForm');
     if (quoteForm) {
         quoteForm.addEventListener('submit', function (e) {
-            e.preventDefault(); // Detenemos el envío tradicional
+            e.preventDefault(); 
 
             const btn = quoteForm.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
@@ -287,28 +287,32 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = true;
             btn.textContent = 'Procesando Diagnóstico...';
 
+            // Convertimos FormData a un objeto simple para JSON
             const formData = new FormData(quoteForm);
+            const data = {};
+            formData.forEach((value, key) => data[key] = value);
 
-            // Enviamos mediante fetch (AJAX)
-            fetch(quoteForm.action, {
+            // URL especial para AJAX de FormSubmit
+            const ajaxUrl = "https://formsubmit.co/ajax/saul18070200@gmail.com";
+
+            fetch(ajaxUrl, {
                 method: 'POST',
-                body: formData,
+                body: JSON.stringify(data),
                 headers: {
+                    'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 }
             })
             .then(response => {
                 if (response.ok) {
-                    // Si todo sale bien, redirigimos a la página de gracias
                     window.location.href = 'thank-you.html';
                 } else {
-                    throw new Error('Error en la respuesta del servidor');
+                    throw new Error('Error en el servidor');
                 }
             })
             .catch(error => {
                 console.error('Error al enviar:', error);
-                // Si falla por red, intentamos el envío tradicional como respaldo
-                alert('Estamos teniendo un detalle técnico, intentaremos el envío directo.');
+                // Si falla, intentamos el envío tradicional SIN ventana de alerta para no molestar
                 quoteForm.submit(); 
             });
         });
