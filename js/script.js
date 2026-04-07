@@ -275,14 +275,42 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
     });
 
-    // --- Interceptor de formulario para UI feedback ---
+    // --- Interceptor de formulario con AJAX para mayor confiabilidad ---
     const quoteForm = document.getElementById('quoteForm');
     if (quoteForm) {
-        quoteForm.addEventListener('submit', function () {
+        quoteForm.addEventListener('submit', function (e) {
+            e.preventDefault(); // Detenemos el envío tradicional
+
             const btn = quoteForm.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            
             btn.disabled = true;
-            btn.textContent = 'Enviando…';
-            // El navegador hará el envío estándar POST y redirigirá por el input _next
+            btn.textContent = 'Procesando Diagnóstico...';
+
+            const formData = new FormData(quoteForm);
+
+            // Enviamos mediante fetch (AJAX)
+            fetch(quoteForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Si todo sale bien, redirigimos a la página de gracias
+                    window.location.href = 'thank-you.html';
+                } else {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+            })
+            .catch(error => {
+                console.error('Error al enviar:', error);
+                // Si falla por red, intentamos el envío tradicional como respaldo
+                alert('Estamos teniendo un detalle técnico, intentaremos el envío directo.');
+                quoteForm.submit(); 
+            });
         });
     }
 });
