@@ -1,3 +1,11 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import firebaseConfig from "./firebase-config.js";
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 // 1. Force Scroll to Top and Disable Browser Restoration
 if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
@@ -275,46 +283,77 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
     });
 
-    // --- Interceptor de formulario con AJAX para mayor confiabilidad ---
+    // --- Fail-Safe Lead Capture (Firestore + FormSubmit) ---
     const quoteForm = document.getElementById('quoteForm');
     if (quoteForm) {
-        quoteForm.addEventListener('submit', function (e) {
+        quoteForm.addEventListener('submit', async function (e) {
             e.preventDefault(); 
 
             const btn = quoteForm.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
             
             btn.disabled = true;
-            btn.textContent = 'Procesando Diagnóstico...';
+            btn.textContent = 'Asegurando tus datos...';
 
-            // Convertimos FormData a un objeto simple para JSON
+            // 1. Recolectar datos
             const formData = new FormData(quoteForm);
             const data = {};
-            formData.forEach((value, key) => data[key] = value);
-
-            // URL especial para AJAX de FormSubmit
-            const ajaxUrl = "https://formsubmit.co/ajax/saul18070200@gmail.com";
-
-            fetch(ajaxUrl, {
-                method: 'POST',
-                body: JSON.stringify(data),
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+            formData.forEach((value, key) => {
+                // No enviar campos internos de FormSubmit a la base de datos
+                if (!key.startsWith('_')) {
+                    data[key] = value;
                 }
-            })
-            .then(response => {
-                if (response.ok) {
+            });
+            data.timestamp = serverTimestamp();
+            data.userAgent = navigator.userAgent;
+
+            let firebaseSaved = false;
+
+            // 2. PASO CRÍTICO: Guardar en Firestore (Backup Infalible)
+            try {
+                console.log("Intentando guardar lead en Firestore...");
+                await addDoc(collection(db, "leads"), data);
+                console.log("Lead guardado exitosamente en Firebase Firestore");
+                firebaseSaved = true;
+            } catch (fsError) {
+                console.error("Error al guardar en Firestore:", fsError);
+                // Si esto falla, seguimos intentando el correo
+            }
+
+            // 3. PASO DE NOTIFICACIÓN: Intentar FormSubmit
+            btn.textContent = 'Enviando notificación...';
+            
+            const formSubmitData = {};
+            formData.forEach((value, key) => formSubmitData[key] = value);
+
+            try {
+                const response = await fetch("https://formsubmit.co/ajax/saul18070200@gmail.com", {
+                    method: 'POST',
+                    body: JSON.stringify(formSubmitData),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok || firebaseSaved) {
+                    // Si se guardó en Firebase O se envió por correo, es un éxito para el cliente
                     window.location.href = 'thank-you.html';
                 } else {
-                    throw new Error('Error en el servidor');
+                    throw new Error('Ambos métodos fallaron');
                 }
-            })
-            .catch(error => {
-                console.error('Error al enviar:', error);
-                // Si falla, intentamos el envío tradicional SIN ventana de alerta para no molestar
-                quoteForm.submit(); 
-            });
+            } catch (error) {
+                console.error('Fallo total de envío:', error);
+                
+                if (firebaseSaved) {
+                    // Aunque el correo/red falle, si se guardó en Firebase, redirigimos como éxito
+                    window.location.href = 'thank-you.html';
+                } else {
+                    // Último recurso: Intento tradicional (podría dar el error QUIC pero no hay de otra)
+                    btn.textContent = 'Recuperando envío...';
+                    quoteForm.submit();
+                }
+            }
         });
     }
 });
