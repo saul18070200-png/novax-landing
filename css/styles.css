@@ -1263,3 +1263,49 @@ label {
         gap: 20px;
     }
 }
+
+/* --------------------------------
+   reCAPTCHA & Anti-Bot Styles
+-------------------------------- */
+.captcha-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 0;
+}
+
+.g-recaptcha {
+    transform-origin: left center;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Adjust for narrower containers on mobile */
+@media (max-width: 400px) {
+    .g-recaptcha {
+        transform: scale(0.88);
+        transform-origin: left center;
+    }
+}
+
+.captcha-error {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.08);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 8px;
+    padding: 8px 16px;
+    width: 100%;
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px); }
+    40%       { transform: translateX(6px); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+}

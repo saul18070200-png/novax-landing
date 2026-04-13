@@ -31,6 +31,9 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="css/styles.css?v=5.0">
+
+    <!-- Google reCAPTCHA v2 -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 
 <body>
@@ -404,11 +407,12 @@
                 </div>
                 <div class="contact__form">
                     <form id="quoteForm" action="https://formspree.io/f/mgopdkdq" method="POST">
-                        <!-- FormSubmit Configuration -->
-                        <input type="hidden" name="_captcha" value="false">
+                        <!-- Formspree Configuration -->
                         <input type="hidden" name="_template" value="table">
                         <input type="hidden" name="_subject" value="Nueva Cotización - NOVAX">
                         <input type="hidden" name="_next" value="https://novaxmx.com/thank-you.html">
+                        <!-- Honeypot anti-bot: Formspree lo rechaza si está lleno -->
+                        <input type="text" name="_gotcha" id="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
 
                         <div class="form-group">
                             <label for="name">Nombre Completo</label>
@@ -488,13 +492,18 @@
                             <textarea id="message" name="message" rows="4" required
                                 placeholder="Cuéntanos más sobre lo que necesitas..."></textarea>
                         </div>
-                        <div class="form-group" style="margin-top: 30px; text-align: center;">
+                        <div class="form-group captcha-group">
+                            <div class="g-recaptcha" data-sitekey="6LdKEDkrAAAAAPaC7NbH_T4yxFMuT1yxmm" data-theme="dark" id="recaptchaWidget"></div>
+                            <p id="captcha-error" class="captcha-error" style="display:none;">⚠ Por favor confirma que no eres un robot.</p>
+                        </div>
+                        <div class="form-group" style="margin-top: 24px; text-align: center;">
                             <p style="font-size: 0.85rem; color: var(--primary); margin-bottom: 15px; opacity: 0.8;">
                                 <span class="material-symbols-outlined"
                                     style="font-size: 14px; vertical-align: middle; margin-right: 4px;">schedule</span>
                                 Te contactamos en menos de 24 horas.
                             </p>
-                            <button type="submit" class="btn btn--primary btn--block">Solicitar Diagnóstico
+                            <p id="bot-error" class="captcha-error" style="display:none;">⚠ Enviado demasiado rápido. Por favor revisa el formulario.</p>
+                            <button type="submit" id="submitBtn" class="btn btn--primary btn--block">Solicitar Diagnóstico
                                 Técnico</button>
                         </div>
                     </form>

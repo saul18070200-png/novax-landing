@@ -239,36 +239,77 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.custom-select').forEach(s => s.classList.remove('active'));
     });
 
-    // --- "Bulletproof" Lead Capture (Firestore + Resilio Tunnel) ---
+    // --- Anti-Bot: registrar tiempo al primer campo tocado ---
+    let formStartTime = null;
     const quoteForm = document.getElementById('quoteForm');
-    if (quoteForm) {
-        quoteForm.addEventListener('submit', async function (e) {
-            e.preventDefault(); 
 
-            const btn = quoteForm.querySelector('button[type="submit"]');
+    if (quoteForm) {
+        const formFields = quoteForm.querySelectorAll('input:not([type=hidden]):not(#_gotcha), textarea, .select-trigger');
+        formFields.forEach(field => {
+            field.addEventListener('focus', () => {
+                if (!formStartTime) formStartTime = Date.now();
+            }, { once: true });
+        });
+
+        quoteForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('submitBtn');
+            const captchaError = document.getElementById('captcha-error');
+            const botError = document.getElementById('bot-error');
+
+            // ---- CAPA 1: Honeypot ----
+            const honeypot = document.getElementById('_gotcha');
+            if (honeypot && honeypot.value !== '') {
+                console.warn('Bot detectado: honeypot lleno.');
+                return; // Silencioso: el bot cree que fue exitoso
+            }
+
+            // ---- CAPA 2: Time-based check (mínimo 5 segundos) ----
+            const elapsed = Date.now() - (formStartTime || Date.now());
+            if (elapsed < 5000) {
+                if (botError) botError.style.display = 'block';
+                setTimeout(() => { if (botError) botError.style.display = 'none'; }, 4000);
+                return;
+            }
+            if (botError) botError.style.display = 'none';
+
+            // ---- CAPA 3: reCAPTCHA v2 ----
+            let captchaToken = '';
+            if (typeof grecaptcha !== 'undefined') {
+                captchaToken = grecaptcha.getResponse();
+                if (!captchaToken) {
+                    if (captchaError) captchaError.style.display = 'block';
+                    return;
+                }
+            }
+            if (captchaError) captchaError.style.display = 'none';
+
+            // ---- Todo OK: procesar envío ----
             btn.disabled = true;
             btn.textContent = 'Enviando Solicitud...';
 
             const formData = new FormData(quoteForm);
             const data = {};
             formData.forEach((value, key) => {
-                if (!key.startsWith('_')) data[key] = value;
+                if (!key.startsWith('_') && key !== 'g-recaptcha-response') data[key] = value;
             });
             data.timestamp = serverTimestamp();
+            data.captchaVerified = !!captchaToken;
 
             // 1. Guardar en Base de Datos (Seguridad #1)
             try {
                 await addDoc(collection(db, "leads"), data);
                 console.log("Lead guardado exitosamente en Base de Datos");
             } catch (fsError) {
-                console.error("Fallo guardar lead (Permisos Firebase):", fsError);
+                console.error("Fallo guardar lead:", fsError);
             }
 
-            // 2. Envío Silencioso (Seguridad #2)
-            quoteForm.target = "hidden_iframe"; 
+            // 2. Envío a Formspree (incluye g-recaptcha-response automáticamente)
+            quoteForm.target = "hidden_iframe";
             quoteForm.submit();
 
-            // 3. UX Instantánea
+            // 3. Redirigir a página de gracias
             setTimeout(() => {
                 window.location.href = 'thank-you.html';
             }, 500);
